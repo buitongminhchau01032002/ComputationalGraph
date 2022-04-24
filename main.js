@@ -61,14 +61,16 @@ function handleUpdateExpression() { // Xử lý ấn nút cập nhật
     if (checkExpression(expression)) {
         // Tạo input biến
         var varGroupInnerHtml = ''
-        expression.forEach(x => {
+        expression.forEach((x, index) => {
             if (ktPhanTu(x) == 0) {
-                varGroupInnerHtml += `
-                    <div class="input-var-group">
-                        <div class="input-var-label">${x} = </div>
-                        <input type="text" class="input" id="var-${x}">
-                    </div>
-                `
+                if (expression.findIndex(elem => elem === x) === index) {
+                    varGroupInnerHtml += `
+                        <div class="input-var-group">
+                            <div class="input-var-label">${x} = </div>
+                            <input type="text" class="input" id="var-${x}">
+                        </div>
+                    `
+                }
             }
         })
         varGroupElem.innerHTML = varGroupInnerHtml
