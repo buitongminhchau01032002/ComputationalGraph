@@ -16,8 +16,8 @@ btnSubmitElem.addEventListener('click', handleSubmitExpression)
 btnNextElem.addEventListener('click', handleNext)
 btnResetElem.addEventListener('click', handleSubmitExpression)
 
-var NODERADIUS = 20
-var DISTANCEX = 100
+var NODERADIUS = 15
+var DISTANCEX = 120
 var DISTANCEY = 100
 
 function Step(toanHang1, toanTu, toanHang2) {
@@ -56,7 +56,7 @@ function getNode(nodeList, id) {
 
 function handleUpdateExpression() { // Xử lý ấn nút cập nhật
     expression = splitExpression(inputExpressionElem.value)
-
+    console.log(expression)
     // Kiểm tra tính hợp lệ của biểu thức
     if (checkExpression(expression)) {
         // Tạo input biến
@@ -78,7 +78,7 @@ function handleUpdateExpression() { // Xử lý ấn nút cập nhật
         // Tạo dữ liệu
         nodeList = taoNodeList(expression)
         danhSachQuyTrinh = taoDanhSachQuyTrinh(nodeList)
-
+        console.log(danhSachQuyTrinh)
         // Tạo html
         nodeElemList = createNodeElemList(nodeList, danhSachQuyTrinh)
         edgeElemList = createEdgeElemList(danhSachQuyTrinh)
@@ -151,7 +151,7 @@ function handleSubmitExpression() {
         currentStep = -1
         return
     }
-    
+
 }
 
 function handleNext() {
@@ -167,21 +167,26 @@ function handleNext() {
     if (currentStep === danhSachQuyTrinh.length - 1) { // Xử lý bước cuối cùng
         var toanHang1 = graphTable[step.toanTu][step.toanHang1]
         var toanTu = getNode(nodeList, step.toanTu).label
-        var toanHang2 = graphTable[step.toanTu][step.toanHang2]
+        var toanHang2 = null
+        if (step.toanHang2 !== null)
+            toanHang2 = graphTable[step.toanTu][step.toanHang2]
         var result = calc(toanHang1, toanHang2, toanTu)
 
 
         // Cập nhật giao diện
         var nodeToanTu = document.getElementById('node-' + step.toanTu)
         var edge1 = document.getElementById(`edge-${step.toanHang1}-${step.toanTu}`)
-        var edge2 = document.getElementById(`edge-${step.toanHang2}-${step.toanTu}`)
+        var edge2 = null
+        if (step.toanHang2 !== null)
+            edge2 = document.getElementById(`edge-${step.toanHang2}-${step.toanTu}`)
         var edgeToanTu = document.getElementById(`edge-final`)
         nodeToanTu.classList.add('active')
         edge1.classList.add('active')
-        edge2.classList.add('active')
+        if (step.toanHang2 !== null)
+            edge2.classList.add('active')
         setTimeout(() => {
             var edgeNum = edgeToanTu.getElementsByClassName('edge-num')
-            edgeNum[0].innerHTML = result
+            edgeNum[0].innerHTML = (result.toFixed(3) == result ? result : result.toFixed(3))
             edgeToanTu.classList.remove('hidden-num')
             edgeToanTu.classList.add('result')
         }, 1000)
@@ -189,7 +194,8 @@ function handleNext() {
         setTimeout(() => {
             nodeToanTu.classList.remove('active')
             edge1.classList.remove('active')
-            edge2.classList.remove('active')
+            if (step.toanHang2 !== null)
+                edge2.classList.remove('active')
             edgeToanTu.classList.remove('result')
         }, 3000)
 
@@ -198,7 +204,9 @@ function handleNext() {
         // Cập nhật bảng đồ thị
         var toanHang1 = graphTable[step.toanTu][step.toanHang1]
         var toanTu = getNode(nodeList, step.toanTu).label
-        var toanHang2 = graphTable[step.toanTu][step.toanHang2]
+        var toanHang2 = null
+        if (step.toanHang2 !== null)
+            toanHang2 = graphTable[step.toanTu][step.toanHang2]
         var indexNodeSauToanTu
         var result
         graphTable.forEach((row, index) => {
@@ -213,14 +221,17 @@ function handleNext() {
         // Cập nhật giao diện
         var nodeToanTu = document.getElementById('node-' + step.toanTu)
         var edge1 = document.getElementById(`edge-${step.toanHang1}-${step.toanTu}`)
-        var edge2 = document.getElementById(`edge-${step.toanHang2}-${step.toanTu}`)
+        var edge2 = null
+        if (step.toanHang2 !== null)
+            edge2 = document.getElementById(`edge-${step.toanHang2}-${step.toanTu}`)
         var edgeToanTu = document.getElementById(`edge-${step.toanTu}-${indexNodeSauToanTu}`)
         nodeToanTu.classList.add('active')
         edge1.classList.add('active')
-        edge2.classList.add('active')
+        if (step.toanHang2 !== null)
+            edge2.classList.add('active')
         setTimeout(() => {
             var edgeNum = edgeToanTu.getElementsByClassName('edge-num')
-            edgeNum[0].innerHTML = result
+            edgeNum[0].innerHTML = (result.toFixed(3) == result ? result : result.toFixed(3))
             edgeToanTu.classList.remove('hidden-num')
             edgeToanTu.classList.add('result')
         }, 1000)
@@ -228,7 +239,8 @@ function handleNext() {
         setTimeout(() => {
             nodeToanTu.classList.remove('active')
             edge1.classList.remove('active')
-            edge2.classList.remove('active')
+            if (step.toanHang2 !== null)
+                edge2.classList.remove('active')
             edgeToanTu.classList.remove('result')
         }, 3000)
 
@@ -237,6 +249,7 @@ function handleNext() {
 }
 
 function calc(toanHang1, toanHang2, toanTu) {
+    console.log(toanHang1, toanHang2, toanTu)
     switch (toanTu) {
         case '+':
             return toNum(toanHang1) + toNum(toanHang2)
@@ -246,6 +259,10 @@ function calc(toanHang1, toanHang2, toanTu) {
             return toNum(toanHang1) * toNum(toanHang2)
         case '/':
             return toNum(toanHang1) / toNum(toanHang2)
+        case '^2':
+            return toNum(toanHang1) ** 2
+        case '^3':
+            return toNum(toanHang1) ** 3
         default:
             return '?'
     }
@@ -341,13 +358,36 @@ function createNodeElemList(nodeList, danhSachQuyTrinh) {
 
     })
 
+    danhSachToanTu1Ngoi = {} // idNode: [toanTu, ...]
+    danhSachQuyTrinh.forEach(step => {
+        if (step.toanHang2 === null) {
+            if (danhSachToanTu1Ngoi[step.toanHang1]) {
+                danhSachToanTu1Ngoi[step.toanHang1]++
+            } else {
+                danhSachToanTu1Ngoi[step.toanHang1] = 1
+            }
+        }
+    })
+    console.log(danhSachToanTu1Ngoi)
     // Dựa vào bảng quy trình để tạo các node phía sau
     danhSachQuyTrinh.forEach(step => {
         var nodeToanTu = getNode(nodeList, step.toanTu)
         var nodeElem1 = getNodeElem(nodeElemList, step.toanHang1)
-        var nodeElem2 = getNodeElem(nodeElemList, step.toanHang2)
-        var xNewNodeElem = Math.max(nodeElem1.x, nodeElem2.x) + DISTANCEX
-        var yNewNodeElem = (nodeElem1.y + nodeElem2.y) / 2
+        var nodeElem2 = null
+        if (step.toanHang2 !== null)
+            nodeElem2 = getNodeElem(nodeElemList, step.toanHang2)
+
+        var xNewNodeElem
+        var yNewNodeElem
+        if (nodeElem2 !== null) {
+            xNewNodeElem = Math.max(nodeElem1.x, nodeElem2.x) + DISTANCEX
+            yNewNodeElem = (nodeElem1.y + nodeElem2.y) / 2
+        }
+        else {
+            var soLuong = --danhSachToanTu1Ngoi[step.toanHang1]
+            xNewNodeElem = nodeElem1.x + DISTANCEX
+            yNewNodeElem = nodeElem1.y + soLuong * (NODERADIUS*2 + 4)
+        }
         nodeElemList.push(new NodeElem(nodeToanTu.id, xNewNodeElem, yNewNodeElem, nodeToanTu.label))
     })
 
@@ -358,7 +398,8 @@ function createEdgeElemList(danhSachQuyTrinh) {
     var edgeElemList = []
     danhSachQuyTrinh.forEach(step => {
         edgeElemList.push(new EdgeElem(step.toanHang1, step.toanTu))
-        edgeElemList.push(new EdgeElem(step.toanHang2, step.toanTu))
+        if (step.toanHang2 !== null)
+            edgeElemList.push(new EdgeElem(step.toanHang2, step.toanTu))
     })
     return edgeElemList
 }
@@ -392,7 +433,8 @@ function taoBangDoThi(nodeList, danhSachQuyTrinh) {
 
     danhSachQuyTrinh.forEach(step => {
         graphTable[step.toanTu][step.toanHang1] = '#'
-        graphTable[step.toanTu][step.toanHang2] = '#'
+        if (step.toanHang2 !== null)
+            graphTable[step.toanTu][step.toanHang2] = '#'
     })
 
     return graphTable
@@ -423,6 +465,16 @@ function taoNodeList(expression) {
 function splitExpression(stringExpression) { // Tách chuỗi biểu thức thành mảng 
     var expression = stringExpression.split(' ').join('').split('')
 
+    for (var i = 0; i < expression.length; i++) {
+        if (expression[i] === '^') {
+            expression[i] += expression[i + 1]
+            expression.splice(i + 1, 1)
+            var t = expression[i]
+            expression[i] = expression[i - 1]
+            expression[i - 1] = t
+        }
+    }
+
     // Chèn cặp ngoặc bao quanh cả biểu thức
     expression.push(')')
     expression = ['(', ...expression]
@@ -440,6 +492,8 @@ function ktPhanTu(str) { //0: biến, 1: toán tử, -1: không hợp lệ
         case '-':
         case '*':
         case '/':
+        case '^2':
+        case '^3':
             return 1;
         default:
             break;
@@ -453,6 +507,8 @@ function doUuTien(operatorStr) { // Xác định độ ưu tiên của một to�
         return 1;
     if (operatorStr == "*" || operatorStr == "/")
         return 2;
+    if (operatorStr == '^2' || operatorStr == '^3')
+        return 3;
 }
 
 function taoDanhSachQuyTrinh(nl) { // Quy trình để tính toán
@@ -527,21 +583,19 @@ function taoDanhSachQuyTrinh(nl) { // Quy trình để tính toán
                 }
                 // Toán tử 1 ngôi
                 else if (_nodeList[vtToanTu + 1].type == 0) {
-                    // var toanHang = toNum(_nodeList[vtToanTu + 1]);
-                    // switch (_nodeList[vtToanTu].label)
-                    // {
-                    //     case "+":
-                    //         _nodeList[vtToanTu] = toanHang.ToString("F10");
-                    //         break;
-                    //     case "-":
-                    //         _nodeList[vtToanTu] = (-toanHang).ToString("F10");
-                    //         break;
-                    //     default:
-                    //         return false;
-                    // }
-                    // _nodeList.RemoveAt(vtToanTu + 1);
-                    // vtNgoacDong--;
-                    return false;
+                    switch (_nodeList[vtToanTu].label) {
+                        case "^2":
+                            _nodeList[vtToanTu].type = 0;
+                            break;
+                        case "^3":
+                            _nodeList[vtToanTu].type = 0;
+                            break;
+                        default:
+                            return false;
+                    }
+                    danhSachQuyTrinh.push(new Step(_nodeList[vtToanTu + 1].id, _nodeList[vtToanTu].id, null))
+                    _nodeList.splice(vtToanTu + 1, 1);
+                    vtNgoacDong--;
                 }
                 else
                     return false;
@@ -592,6 +646,8 @@ function checkExpression(ex) { // Kiểm tra tính hợp lệ của biểu thứ
                 }
             }
 
+
+
             if (vtToanTu == -1) // Không tìm thấy toán tử
             {
                 if (vtNgoacDong - vtNgoacMo != 2 ||
@@ -626,21 +682,19 @@ function checkExpression(ex) { // Kiểm tra tính hợp lệ của biểu thứ
                 }
                 // Toán tử 1 ngôi
                 else if (ktPhanTu(expression[vtToanTu + 1]) == 0) {
-                    // var toanHang = toNum(expression[vtToanTu + 1]);
-                    // switch (expression[vtToanTu])
-                    // {
-                    //     case "+":
-                    //         expression[vtToanTu] = toanHang.ToString("F10");
-                    //         break;
-                    //     case "-":
-                    //         expression[vtToanTu] = (-toanHang).ToString("F10");
-                    //         break;
-                    //     default:
-                    //         return false;
-                    // }
-                    // expression.RemoveAt(vtToanTu + 1);
-                    // vtNgoacDong--;
-                    return false;
+                    var toanHang = toNum(expression[vtToanTu + 1]);
+                    switch (expression[vtToanTu]) {
+                        case "^2":
+                            expression[vtToanTu] = toanHang + '';
+                            break;
+                        case "^3":
+                            expression[vtToanTu] = toanHang + '';
+                            break;
+                        default:
+                            return false;
+                    }
+                    expression.splice(vtToanTu + 1, 1);
+                    vtNgoacDong--;
                 }
                 else
                     return false;
