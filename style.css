@@ -64,6 +64,25 @@ body {
     flex: 1;
 }
 
+.var-input-text {
+    width: 100%;
+}
+
+.var-textarea {
+    padding: 0px 8px;
+    font-size: 14px;
+    color: #333;
+    outline: none;
+    border-radius: 5px;
+    border: 1px solid gray;
+    resize: vertical;
+    width: 100%;
+}
+
+.display-none {
+    display: none;
+}
+
 .btn {
     outline: none;
     border: none;
@@ -103,12 +122,25 @@ body {
     margin-right: 8px;
 }
 
+.input-var {
+    flex: 1;
+}
+
 .sidebar-group {
     margin-bottom: 20px;
 }
 
 .btn-sidebar-submit {
-    width: 100%;
+    width: 50%;
+}
+
+.btn-sidebar-clear {
+    width: 50%;
+    margin-right: 4px;
+}
+
+.sidebar-bottom {
+    display: flex;
 }
 
 
@@ -215,4 +247,20 @@ body {
 .control-bar {
     display: flex;
     align-items: center;
+}
+
+
+/* ========================= */
+
+.matrix {
+    display: inline-flex;
+    flex-direction: column;
+    font-family: monospace;
+    font-size: 13px;
+    font-weight: 300;
+}
+
+.row-matrix {
+    display: flex;
+    justify-content: space-between;
 }

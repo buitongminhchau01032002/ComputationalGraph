@@ -5,6 +5,7 @@ var btnNextElem = document.getElementById('next-control-btn')
 var btnResetElem = document.getElementById('reset-control-btn')
 var mainWorkspaceElem = document.getElementById('main-workspace')
 var varGroupElem = document.getElementById('var-group')
+var btnClearElem = document.getElementById('btn-clear')
 var nodeList = []
 var graphTable = null
 var nodeElemList = null
@@ -15,6 +16,7 @@ btnUpdateExpressionElem.addEventListener('click', handleUpdateExpression)
 btnSubmitElem.addEventListener('click', handleSubmitExpression)
 btnNextElem.addEventListener('click', handleNext)
 btnResetElem.addEventListener('click', handleSubmitExpression)
+btnClearElem.addEventListener('click', handleClear)
 
 var NODERADIUS = 15
 var DISTANCEX = 120
@@ -45,6 +47,11 @@ function EdgeElem(id1, id2) {
     this.id2 = id2
 }
 
+function Value(type, data) {
+    this.type = type
+    this.data = data
+}
+
 function getNode(nodeList, id) {
     for (let i = 0; i < nodeList.length; i++) {
         if (nodeList[i].id === id) {
@@ -52,6 +59,39 @@ function getNode(nodeList, id) {
         }
     }
     return false
+}
+
+function handleClear() {
+    nodeList = []
+    graphTable = null
+    nodeElemList = null
+    edgeElemList = null
+    danhSachQuyTrinh = null
+    currentStep = -1
+    inputExpressionElem.value = ''
+    varGroupElem.innerHTML = ''
+    mainWorkspaceElem.innerHTML = ''
+}
+
+function handleBtnSwitch(e) {
+
+    var tArray = e.target.id.split('-')
+    var varId = tArray[tArray.length - 1]
+    var inputVarElem = document.getElementById('var-' + varId)
+    if (inputVarElem) {
+        var inputElem = inputVarElem.getElementsByTagName('input')[0]
+        var areaElem = inputVarElem.getElementsByTagName('textarea')[0]
+        if (inputElem.classList.contains('display-none')) {
+            inputElem.classList.remove('display-none')
+        } else {
+            inputElem.classList.add('display-none')
+        }
+        if (areaElem.classList.contains('display-none')) {
+            areaElem.classList.remove('display-none')
+        } else {
+            areaElem.classList.add('display-none')
+        }
+    }
 }
 
 function handleUpdateExpression() { // Xử lý ấn nút cập nhật
@@ -67,7 +107,13 @@ function handleUpdateExpression() { // Xử lý ấn nút cập nhật
                     varGroupInnerHtml += `
                         <div class="input-var-group">
                             <div class="input-var-label">${x} = </div>
-                            <input type="text" class="input" id="var-${x}">
+                            <div class="input-var" id="var-${x}">
+
+                                <input type="text" class="input var-input-text" >
+                                <textarea id="" rows="3" class="display-none var-textarea"></textarea>
+                            </div>
+                            <button id="switch-type-var-${x}" class="btn btn-update-expresion" onclick="handleBtnSwitch(event)">Đổi</button>
+                            
                         </div>
                     `
                 }
@@ -75,8 +121,12 @@ function handleUpdateExpression() { // Xử lý ấn nút cập nhật
         })
         varGroupElem.innerHTML = varGroupInnerHtml
 
+        // Add event cho button
+
+
         // Tạo dữ liệu
         nodeList = taoNodeList(expression)
+        console.log(nodeList)
         danhSachQuyTrinh = taoDanhSachQuyTrinh(nodeList)
         console.log(danhSachQuyTrinh)
         // Tạo html
@@ -115,28 +165,58 @@ function handleSubmitExpression() {
             if (nodeList[i].type === 0) {
                 var label = nodeList[i].label
                 var inputOfLabel = document.getElementById('var-' + label)
+                // Kiểm tra là số hay ma trận, tạo biến Value
+                var inputElem = inputOfLabel.getElementsByTagName('input')[0]
+                var areaElem = inputOfLabel.getElementsByTagName('textarea')[0]
                 if (inputOfLabel) {
-                    if (checkNumber(inputOfLabel.value)) {
-                        // Tìm các cạnh ra của node
-                        graphTable.forEach((row, index) => {
-                            if (row[nodeList[i].id] === '#') {
-                                row[nodeList[i].id] = toNum(inputOfLabel.value)
+                    if (!inputElem.classList.contains('display-none')) { // Là số
+                        if (checkNumber(inputElem.value)) {
+                            // Tìm các cạnh ra của node
+                            graphTable.forEach((row, index) => {
+                                if (row[nodeList[i].id] === '#') {
+                                    row[nodeList[i].id] = new Value(0, toNum(inputElem.value))
 
-                                // Thay đổi html
-                                var edge = document.getElementById(`edge-${nodeList[i].id}-${index}`)
-                                if (edge) {
-                                    edge.classList.remove('hidden-num')
-                                    var edgeNum = edge.getElementsByClassName('edge-num')
-                                    edgeNum[0].innerHTML = inputOfLabel.value
+                                    // Thay đổi html
+                                    var edge = document.getElementById(`edge-${nodeList[i].id}-${index}`)
+                                    if (edge) {
+                                        edge.classList.remove('hidden-num')
+                                        var edgeNum = edge.getElementsByClassName('edge-num')
+                                        edgeNum[0].innerHTML = inputElem.value
+                                    }
                                 }
-                            }
-                        })
-                        currentStep = 0
-                    } else {
-                        alert('Giá trị của biến không hợp lệ')
-                        currentStep = -1
-                        return
+                            })
+                            currentStep = 0
+                        } else {
+                            alert('Giá trị của biến không hợp lệ')
+                            currentStep = -1
+                            return
+                        }
+                    } else { // Là ma trận
+                        console.log('vao ma tran')
+                        var mt = str2mt(areaElem.value)
+                        if (ktMaTran(mt)) {
+                            // Tìm các cạnh ra của node
+                            graphTable.forEach((row, index) => {
+                                if (row[nodeList[i].id] === '#') {
+                                    row[nodeList[i].id] = new Value(1, mt)
+
+                                    // Thay đổi html
+                                    var edge = document.getElementById(`edge-${nodeList[i].id}-${index}`)
+                                    if (edge) {
+                                        edge.classList.remove('hidden-num')
+                                        var edgeNum = edge.getElementsByClassName('edge-num')
+                                        edgeNum[0].innerHTML = Mt2Elem(mt)
+                                    }
+                                }
+                            })
+                            currentStep = 0
+                        } else {
+                            alert('Giá trị của biến không hợp lệ')
+                            currentStep = -1
+                            return
+                        }
                     }
+
                 } else {
                     alert('Không tìm thấy biến')
                     currentStep = -1
@@ -151,7 +231,7 @@ function handleSubmitExpression() {
         currentStep = -1
         return
     }
-
+    console.table(graphTable)
 }
 
 function handleNext() {
@@ -172,7 +252,7 @@ function handleNext() {
             toanHang2 = graphTable[step.toanTu][step.toanHang2]
         var result = calc(toanHang1, toanHang2, toanTu)
 
-
+        console.log(result)
         // Cập nhật giao diện
         var nodeToanTu = document.getElementById('node-' + step.toanTu)
         var edge1 = document.getElementById(`edge-${step.toanHang1}-${step.toanTu}`)
@@ -186,7 +266,13 @@ function handleNext() {
             edge2.classList.add('active')
         setTimeout(() => {
             var edgeNum = edgeToanTu.getElementsByClassName('edge-num')
-            edgeNum[0].innerHTML = (result.toFixed(3) == result ? result : result.toFixed(3))
+            if (result.type == 0) {
+                edgeNum[0].innerHTML = (result.toFixed(3) == result ? result : result.toFixed(3))
+            } else if (result.type == 1) {
+                edgeNum[0].innerHTML = Mt2Elem(result.data)
+            } else {
+                edgeNum[0].innerHTML = '?'
+            }
             edgeToanTu.classList.remove('hidden-num')
             edgeToanTu.classList.add('result')
         }, 1000)
@@ -202,7 +288,7 @@ function handleNext() {
         currentStep = -2
     } else {
         // Cập nhật bảng đồ thị
-        var toanHang1 = graphTable[step.toanTu][step.toanHang1]
+        var toanHang1 = graphTable[step.toanTu][step.toanHang1] // kieu Value
         var toanTu = getNode(nodeList, step.toanTu).label
         var toanHang2 = null
         if (step.toanHang2 !== null)
@@ -216,8 +302,10 @@ function handleNext() {
                 indexNodeSauToanTu = index
             }
         })
-        console.log(graphTable)
+        console.table(graphTable)
         console.log(indexNodeSauToanTu)
+
+
         // Cập nhật giao diện
         var nodeToanTu = document.getElementById('node-' + step.toanTu)
         var edge1 = document.getElementById(`edge-${step.toanHang1}-${step.toanTu}`)
@@ -231,7 +319,13 @@ function handleNext() {
             edge2.classList.add('active')
         setTimeout(() => {
             var edgeNum = edgeToanTu.getElementsByClassName('edge-num')
-            edgeNum[0].innerHTML = (result.toFixed(3) == result ? result : result.toFixed(3))
+            if (result.type == 0) {
+                edgeNum[0].innerHTML = (result.toFixed(3) == result ? result : result.toFixed(3))
+            } else if (result.type == 1) {
+                edgeNum[0].innerHTML = Mt2Elem(result.data)
+            } else {
+                edgeNum[0].innerHTML = '?'
+            }
             edgeToanTu.classList.remove('hidden-num')
             edgeToanTu.classList.add('result')
         }, 1000)
@@ -249,23 +343,85 @@ function handleNext() {
 }
 
 function calc(toanHang1, toanHang2, toanTu) {
-    console.log(toanHang1, toanHang2, toanTu)
-    switch (toanTu) {
-        case '+':
-            return toNum(toanHang1) + toNum(toanHang2)
-        case '-':
-            return toNum(toanHang1) - toNum(toanHang2)
-        case '*':
-            return toNum(toanHang1) * toNum(toanHang2)
-        case '/':
-            return toNum(toanHang1) / toNum(toanHang2)
-        case '^2':
-            return toNum(toanHang1) ** 2
-        case '^3':
-            return toNum(toanHang1) ** 3
-        default:
-            return '?'
+    var result = new Value(-1, '?')
+    if (toanHang1.type === -1) {
+        return result
     }
+    if (toanHang2) {
+        if (toanHang2.type === -1) {
+            return result
+        }
+    }
+
+
+    if (toanTu === '+') {
+        if (toanHang1.type === 0 && toanHang2.type === 0) {
+            result.type = 0
+            result.data = toNum(toanHang1.data) + toNum(toanHang2.data)
+        } else if (toanHang1.type === 1 && toanHang2.type === 0) {
+            return result
+        } else if (toanHang1.type === 0 && toanHang2.type === 1) {
+            return result
+        } else if (toanHang1.type === 1 && toanHang2.type === 1) {
+            result.type = 1
+            result.data = MtCongMt(toanHang1.data, toanHang2.data)
+        }
+    } else if (toanTu === '-') {
+        if (toanHang1.type === 0 && toanHang2.type === 0) {
+            result.type = 0
+            result.data = toNum(toanHang1.data) - toNum(toanHang2.data)
+        } else if (toanHang1.type === 1 && toanHang2.type === 0) {
+            return result
+        } else if (toanHang1.type === 0 && toanHang2.type === 1) {
+            return result
+        } else if (toanHang1.type === 1 && toanHang2.type === 1) {
+            result.type = 1
+            result.data = MtTruMt(toanHang1.data, toanHang2.data)
+        }
+    } else if (toanTu === '*') {
+        if (toanHang1.type === 0 && toanHang2.type === 0) {
+            result.type = 0
+            result.data = toNum(toanHang1.data) * toNum(toanHang2.data)
+        } else if (toanHang1.type === 1 && toanHang2.type === 0) {
+            result.type = 1
+            result.data = MtNhanSo(toanHang1.data, toanHang2.data)
+        } else if (toanHang1.type === 0 && toanHang2.type === 1) {
+            result.type = 1
+            result.data = SoNhanMt(toanHang1.data, toanHang2.data)
+        } else if (toanHang1.type === 1 && toanHang2.type === 1) {
+            result.type = 1
+            result.data = MtNhanMt(toanHang1.data, toanHang2.data)
+        }
+    } else if (toanTu === '/') {
+        if (toanHang1.type === 0 && toanHang2.type === 0) {
+            result.type = 0
+            result.data = toNum(toanHang1.data) / toNum(toanHang2.data)
+        } else {
+            return result
+        }
+    } else {
+        if (toanTu[0] === '^') {
+            if (toanHang1.type === 0) {
+                result.type = 0
+                console.log(toanTu)
+                result.data = toNum(toanHang1.data) ** toNum(toanTu.slice(1))
+            } else {
+                return result
+            }
+        } else {
+            return result
+        }
+    }
+    console.log(result)
+    if (result.type === 0) {
+        if (isNaN(result.data) || !Number.isFinite(result.data)) {
+            return new Value(-1, '?')
+        }
+    }
+    if (result.data === '?') {
+        return new Value(-1, '?')
+    }
+    return result
 }
 
 function checkNumber(num) {
@@ -344,17 +500,21 @@ function drawEdge(edgeElemList) {
 }
 
 function createNodeElemList(nodeList, danhSachQuyTrinh) {
+    var maxX = 0
+    var maxY = 0
     var nodeElemList = []
 
-    var yNodeVar = 30; // y cua cac node bien
+    var yNodeVar = 0; // y cua cac node bien
     // Tao node cac bien
     nodeList.forEach(node => {
         if (node.type === 0) {
             if (nodeElemList.findIndex(nodeElem => nodeElem.id === node.id) === -1) {
-                nodeElemList.push(new NodeElem(node.id, 30, yNodeVar, node.label))
+                maxY = yNodeVar
+                nodeElemList.push(new NodeElem(node.id, 0, yNodeVar, node.label))
                 yNodeVar += DISTANCEY
             }
         }
+        
 
     })
 
@@ -368,7 +528,6 @@ function createNodeElemList(nodeList, danhSachQuyTrinh) {
             }
         }
     })
-    console.log(danhSachToanTu1Ngoi)
     // Dựa vào bảng quy trình để tạo các node phía sau
     danhSachQuyTrinh.forEach(step => {
         var nodeToanTu = getNode(nodeList, step.toanTu)
@@ -386,12 +545,25 @@ function createNodeElemList(nodeList, danhSachQuyTrinh) {
         else {
             var soLuong = --danhSachToanTu1Ngoi[step.toanHang1]
             xNewNodeElem = nodeElem1.x + DISTANCEX
-            yNewNodeElem = nodeElem1.y + soLuong * (NODERADIUS*2 + 4)
+            yNewNodeElem = nodeElem1.y + soLuong * (NODERADIUS * 2 + 4)
+        }
+        if (xNewNodeElem > maxX) {
+            maxX = xNewNodeElem
         }
         nodeElemList.push(new NodeElem(nodeToanTu.id, xNewNodeElem, yNewNodeElem, nodeToanTu.label))
     })
 
-    return nodeElemList
+    // Đẩy vào giữa
+    var widthOfGraph = maxX + DISTANCEX
+    var heightOfGraph = maxY
+    var offsetX = (mainWorkspaceElem.clientWidth - widthOfGraph) / 2
+    var offsetY = (mainWorkspaceElem.clientHeight - heightOfGraph) / 2
+    return nodeElemList.map(nodeElem => new NodeElem(
+        nodeElem.id,
+        nodeElem.x + offsetX,
+        nodeElem.y + offsetY,
+        nodeElem.label
+    ))
 }
 
 function createEdgeElemList(danhSachQuyTrinh) {
@@ -467,8 +639,17 @@ function splitExpression(stringExpression) { // Tách chuỗi biểu thức thà
 
     for (var i = 0; i < expression.length; i++) {
         if (expression[i] === '^') {
-            expression[i] += expression[i + 1]
-            expression.splice(i + 1, 1)
+
+            var vt = 1
+            var toanTu = '^'
+            while (!isNaN(expression[i + vt])) {
+                toanTu += expression[i + vt]
+                vt++
+            }
+            expression[i] = toanTu
+            expression.splice(i + 1, vt)
+
+
             var t = expression[i]
             expression[i] = expression[i - 1]
             expression[i - 1] = t
@@ -492,13 +673,13 @@ function ktPhanTu(str) { //0: biến, 1: toán tử, -1: không hợp lệ
         case '-':
         case '*':
         case '/':
-        case '^2':
-        case '^3':
             return 1;
         default:
             break;
     }
-
+    if (str[0] === '^') {
+        return 1
+    }
     return -1;
 }
 
@@ -583,16 +764,12 @@ function taoDanhSachQuyTrinh(nl) { // Quy trình để tính toán
                 }
                 // Toán tử 1 ngôi
                 else if (_nodeList[vtToanTu + 1].type == 0) {
-                    switch (_nodeList[vtToanTu].label) {
-                        case "^2":
-                            _nodeList[vtToanTu].type = 0;
-                            break;
-                        case "^3":
-                            _nodeList[vtToanTu].type = 0;
-                            break;
-                        default:
-                            return false;
+                    if ((_nodeList[vtToanTu].label)[0] === '^') {
+                        _nodeList[vtToanTu].type = 0;
+                    } else {
+                        return false
                     }
+
                     danhSachQuyTrinh.push(new Step(_nodeList[vtToanTu + 1].id, _nodeList[vtToanTu].id, null))
                     _nodeList.splice(vtToanTu + 1, 1);
                     vtNgoacDong--;
@@ -682,16 +859,10 @@ function checkExpression(ex) { // Kiểm tra tính hợp lệ của biểu thứ
                 }
                 // Toán tử 1 ngôi
                 else if (ktPhanTu(expression[vtToanTu + 1]) == 0) {
-                    var toanHang = toNum(expression[vtToanTu + 1]);
-                    switch (expression[vtToanTu]) {
-                        case "^2":
-                            expression[vtToanTu] = toanHang + '';
-                            break;
-                        case "^3":
-                            expression[vtToanTu] = toanHang + '';
-                            break;
-                        default:
-                            return false;
+                    if (expression[vtToanTu][0] === '^') {
+                        expression[vtToanTu] = toanHang1 + ''
+                    } else {
+                        return false
                     }
                     expression.splice(vtToanTu + 1, 1);
                     vtNgoacDong--;
@@ -709,4 +880,110 @@ function checkExpression(ex) { // Kiểm tra tính hợp lệ của biểu thứ
     if (expression.length == 0 || ktPhanTu(expression[0]) != 0)
         return false;
     return true
+}
+
+
+function Mt2Elem(m) {
+
+    var testWidth = document.createElement('span')
+    document.body.appendChild(testWidth);
+    testWidth.style.font = "monospace";
+    testWidth.style.fontSize = 13 + "px";
+    testWidth.style.position = 'absolute';
+    testWidth.innerHTML = '2';
+    var widthChar = testWidth.clientWidth
+    document.body.removeChild(testWidth);
+
+    var html = ''
+    var maxWidth = 0
+    for (var row = 0; row < m.length; row++) {
+        var rowHtml = ''
+        var rowString = ''
+        for (var col = 0; col < m[0].length; col++) {
+            var num = toNum(m[row][col])
+            num = num.toFixed(3) == num ? num : num.toFixed(3)
+            rowHtml += `<div class="elem-matrix">${num}</div>`
+            rowString += (num + ' ')
+        }
+        if (maxWidth < (rowString.length - 1) * widthChar) {
+            maxWidth = (rowString.length - 1) * widthChar
+        }
+        console.log(rowString.length - 1)
+        rowHtml = `<div class="row-matrix">${rowHtml}</div>`
+        html += rowHtml
+    }
+    console.log(widthChar)
+    console.log(maxWidth)
+    html = `<div class="matrix" style="width: ${maxWidth}px">${html}</div>`
+
+
+    return html
+}
+
+function ktMaTran(mt) {
+    var cols = mt[0].length
+    for (var i = 0; i < mt.length; i++) {
+        if (mt[i].length !== cols) {
+            return false
+        } else {
+            for (var j = 0; j < mt[i].length; j++) {
+                if (!checkNumber(mt[i][j])) {
+                    return false
+                }
+            }
+        }
+    }
+    return true
+}
+
+function MtCongMt(mt1, mt2) {
+    if (mt1.length !== mt2.length || mt1[0].length !== mt2[0].length) {
+        return '?'
+    } else {
+        return mt1.map((mt1Row, row) => mt1Row.map((mt1Elem, col) => (
+            toNum(mt1Elem) + toNum(mt2[row][col])
+        )))
+    }
+}
+
+function MtTruMt(mt1, mt2) {
+    if (mt1.length !== mt2.length || mt1[0].length !== mt2[0].length) {
+        return '?'
+    } else {
+        return mt1.map((mt1Row, row) => mt1Row.map((mt1Elem, col) => (
+            toNum(mt1Elem) - toNum(mt2[row][col])
+        )))
+    }
+}
+
+function MtNhanMt(m1, m2) {
+    if (m1[0].length !== m2.length) {
+        return '?'
+    }
+    var result = [];
+    for (var i = 0; i < m1.length; i++) {
+        result[i] = [];
+        for (var j = 0; j < m2[0].length; j++) {
+            var sum = 0;
+            for (var k = 0; k < m1[0].length; k++) {
+                sum += toNum(m1[i][k]) * toNum(m2[k][j])
+            }
+            result[i][j] = sum;
+        }
+    }
+    return result;
+}
+
+function MtNhanSo(m, so) {
+
+    return m.map(row => row.map(elem => elem * so))
+}
+
+function SoNhanMt(so, m) {
+
+    return m.map(row => row.map(elem => elem * so))
+}
+
+function str2mt(str) {
+    return str.split('\n').map(strRow => strRow.split(' '))
 }
