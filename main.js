@@ -267,7 +267,7 @@ function handleNext() {
         setTimeout(() => {
             var edgeNum = edgeToanTu.getElementsByClassName('edge-num')
             if (result.type == 0) {
-                edgeNum[0].innerHTML = (result.toFixed(3) == result ? result : result.toFixed(3))
+                edgeNum[0].innerHTML = (result.data.toFixed(3) == result.data ? result.data : result.data.toFixed(3))
             } else if (result.type == 1) {
                 edgeNum[0].innerHTML = Mt2Elem(result.data)
             } else {
@@ -320,7 +320,7 @@ function handleNext() {
         setTimeout(() => {
             var edgeNum = edgeToanTu.getElementsByClassName('edge-num')
             if (result.type == 0) {
-                edgeNum[0].innerHTML = (result.toFixed(3) == result ? result : result.toFixed(3))
+                edgeNum[0].innerHTML = (result.data.toFixed(3) == result.data ? result.data : result.data.toFixed(3))
             } else if (result.type == 1) {
                 edgeNum[0].innerHTML = Mt2Elem(result.data)
             } else {
