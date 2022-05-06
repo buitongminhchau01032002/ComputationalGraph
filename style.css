@@ -28,7 +28,7 @@ body {
 }
 
 .sidebar-input-wrap {
-    overflow-y: scroll;
+    overflow-y: auto;
     flex: 1;
 }
 
