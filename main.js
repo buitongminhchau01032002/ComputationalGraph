@@ -12,11 +12,18 @@ var nodeElemList = null
 var edgeElemList = null
 var danhSachQuyTrinh = null
 var currentStep = -1
+btnNextElem.disabled = true
+btnResetElem.disabled = true
 btnUpdateExpressionElem.addEventListener('click', handleUpdateExpression)
 btnSubmitElem.addEventListener('click', handleSubmitExpression)
 btnNextElem.addEventListener('click', handleNext)
 btnResetElem.addEventListener('click', handleSubmitExpression)
 btnClearElem.addEventListener('click', handleClear)
+inputExpressionElem.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+        handleUpdateExpression()
+    }
+})
 
 var NODERADIUS = 15
 var DISTANCEX = 120
@@ -68,9 +75,12 @@ function handleClear() {
     edgeElemList = null
     danhSachQuyTrinh = null
     currentStep = -1
+    btnNextElem.disabled = true
+    btnResetElem.disabled = true
     inputExpressionElem.value = ''
     varGroupElem.innerHTML = ''
     mainWorkspaceElem.innerHTML = ''
+    inputExpressionElem.focus()
 }
 
 function handleBtnSwitch(e) {
@@ -101,6 +111,7 @@ function handleUpdateExpression() { // Xử lý ấn nút cập nhật
     if (checkExpression(expression)) {
         // Tạo input biến
         var varGroupInnerHtml = ''
+        var tabIndex = 1
         expression.forEach((x, index) => {
             if (ktPhanTu(x) == 0) {
                 if (expression.findIndex(elem => elem === x) === index) {
@@ -109,13 +120,17 @@ function handleUpdateExpression() { // Xử lý ấn nút cập nhật
                             <div class="input-var-label">${x} = </div>
                             <div class="input-var" id="var-${x}">
 
-                                <input type="text" class="input var-input-text" >
-                                <textarea id="" rows="3" class="display-none var-textarea"></textarea>
+                                <input tabindex=${tabIndex + 1} type="text" class="input var-input-text" placeholder="Nhập số">
+                                <textarea tabindex=${tabIndex + 1} id="" rows="3" class="display-none var-textarea" placeholder="Nhập ma trận"></textarea>
                             </div>
-                            <button id="switch-type-var-${x}" class="btn btn-update-expresion" onclick="handleBtnSwitch(event)">Đổi</button>
+                            <button id="switch-type-var-${x}" class="btn btn-switch" onclick="handleBtnSwitch(event)">
+                                <i class="ti-loop" style="margin-right: 4px;"></i>
+                                Đổi
+                            </button>
                             
                         </div>
                     `
+                    tabIndex++
                 }
             }
         })
@@ -136,6 +151,8 @@ function handleUpdateExpression() { // Xử lý ấn nút cập nhật
         drawNode(nodeElemList)
         drawEdge(edgeElemList)
         currentStep = -1
+        btnNextElem.disabled = true
+        btnResetElem.disabled = true
     } else {
         alert('Biểu thức không hợp lệ')
     }
@@ -186,9 +203,13 @@ function handleSubmitExpression() {
                                 }
                             })
                             currentStep = 0
+                            btnNextElem.disabled = false
+                            btnResetElem.disabled = false
                         } else {
                             alert('Giá trị của biến không hợp lệ')
                             currentStep = -1
+                            btnNextElem.disabled = true
+                            btnResetElem.disabled = true
                             return
                         }
                     } else { // Là ma trận
@@ -210,9 +231,13 @@ function handleSubmitExpression() {
                                 }
                             })
                             currentStep = 0
+                            btnNextElem.disabled = false
+                            btnResetElem.disabled = false
                         } else {
                             alert('Giá trị của biến không hợp lệ')
                             currentStep = -1
+                            btnNextElem.disabled = true
+                            btnResetElem.disabled = true
                             return
                         }
                     }
@@ -220,6 +245,8 @@ function handleSubmitExpression() {
                 } else {
                     alert('Không tìm thấy biến')
                     currentStep = -1
+                    btnNextElem.disabled = true
+                    btnResetElem.disabled = true
                     return
                 }
             }
@@ -229,6 +256,8 @@ function handleSubmitExpression() {
     } else {
         alert('Biểu thức không hợp lệ')
         currentStep = -1
+        btnNextElem.disabled = true
+        btnResetElem.disabled = true
         return
     }
     console.table(graphTable)
@@ -275,7 +304,7 @@ function handleNext() {
             }
             edgeToanTu.classList.remove('hidden-num')
             edgeToanTu.classList.add('result')
-        }, 1000)
+        }, 800)
 
         setTimeout(() => {
             nodeToanTu.classList.remove('active')
@@ -283,9 +312,11 @@ function handleNext() {
             if (step.toanHang2 !== null)
                 edge2.classList.remove('active')
             edgeToanTu.classList.remove('result')
-        }, 3000)
+        }, 2500)
 
         currentStep = -2
+        btnNextElem.disabled = true
+        btnResetElem.disabled = false
     } else {
         // Cập nhật bảng đồ thị
         var toanHang1 = graphTable[step.toanTu][step.toanHang1] // kieu Value
@@ -514,7 +545,7 @@ function createNodeElemList(nodeList, danhSachQuyTrinh) {
                 yNodeVar += DISTANCEY
             }
         }
-        
+
 
     })
 
