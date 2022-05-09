@@ -680,16 +680,41 @@ function splitExpression(stringExpression) { // Tách chuỗi biểu thức thà
             expression[i] = toanTu
             expression.splice(i + 1, vt)
 
+            // Đổi toán tử mũ lên đứng trước
+            if (expression[i - 1] !== ')') {
+                var t = expression[i]
+                expression[i] = expression[i - 1]
+                expression[i - 1] = t
+            } else {
+                
+                console.log('bang ngoac')
+                var ii = i - 1
+                var ngoacDong = 0
+                var ngoacMo = 0
+                while (ii >= 0) {
+                    if (expression[ii] === ')') {
+                        ngoacDong++
+                    }
+                    if (expression[ii] === '(') {
+                        ngoacMo++
+                    }
+                    expression[ii + 1] = expression[ii]
+                    if (ngoacDong === ngoacMo) {
+                        expression[ii] = toanTu
+                        break
+                    }
+                    ii--
+                }
 
-            var t = expression[i]
-            expression[i] = expression[i - 1]
-            expression[i - 1] = t
+            }
+
         }
     }
 
     // Chèn cặp ngoặc bao quanh cả biểu thức
     expression.push(')')
     expression = ['(', ...expression]
+    console.log(expression)
     return expression
 }
 
