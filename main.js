@@ -3,22 +3,34 @@ var btnUpdateExpressionElem = document.getElementById('update-expression')
 var btnSubmitElem = document.getElementById('btn-submit')
 var btnNextElem = document.getElementById('next-control-btn')
 var btnResetElem = document.getElementById('reset-control-btn')
+var btnResetBackwardElem = document.getElementById('reset-backward-btn')
+var btnNextBackwardElem = document.getElementById('next-backward-btn')
 var mainWorkspaceElem = document.getElementById('main-workspace')
 var varGroupElem = document.getElementById('var-group')
 var btnClearElem = document.getElementById('btn-clear')
+var backwardVarElem = document.getElementById('var-backward')
 var nodeList = []
 var graphTable = null
 var nodeElemList = null
 var edgeElemList = null
 var danhSachQuyTrinh = null
+var quyTrinhDaoHam = null
+var bangDaoHam = null
+var varBackward = -1
 var currentStep = -1
+var currentBackwardStep = -1
+var giaTriCuoi = null
 btnNextElem.disabled = true
 btnResetElem.disabled = true
+btnNextBackwardElem.disabled = true
+btnResetBackwardElem.disabled = true
 btnUpdateExpressionElem.addEventListener('click', handleUpdateExpression)
 btnSubmitElem.addEventListener('click', handleSubmitExpression)
 btnNextElem.addEventListener('click', handleNext)
 btnResetElem.addEventListener('click', handleSubmitExpression)
+btnResetBackwardElem.addEventListener('click', handleResetBackward)
 btnClearElem.addEventListener('click', handleClear)
+btnNextBackwardElem.addEventListener('click', handleBackwardNext)
 inputExpressionElem.addEventListener('keydown', e => {
     if (e.key === 'Enter') {
         handleUpdateExpression()
@@ -26,7 +38,7 @@ inputExpressionElem.addEventListener('keydown', e => {
 })
 
 var NODERADIUS = 15
-var DISTANCEX = 120
+var DISTANCEX = 150
 var DISTANCEY = 100
 
 function Step(toanHang1, toanTu, toanHang2) {
@@ -35,18 +47,26 @@ function Step(toanHang1, toanTu, toanHang2) {
     this.toanHang2 = toanHang2
 }
 
-function Node(id, label, type) {
+function StepDaoHam(nodeTruoc, step) {
+    this.nodeTruoc = nodeTruoc
+    this.step = step
+}
+
+function Node(id, label, type, varName, description) {
     this.id = id
     this.label = label
     this.type = type // 0: biến, 1: toán tử, -1: ngoặc
+    this.varName = varName
+    this.description = description
 }
 
 
-function NodeElem(id, x, y, label) {
+function NodeElem(id, x, y, label, description) {
     this.id = id
     this.x = x
     this.y = y
     this.label = label
+    this.description = description
 }
 
 function EdgeElem(id1, id2) {
@@ -81,6 +101,118 @@ function handleClear() {
     varGroupElem.innerHTML = ''
     mainWorkspaceElem.innerHTML = ''
     inputExpressionElem.focus()
+    backwardVarElem.innerHTML = ''
+    quyTrinhDaoHam = null
+    varBackward = -1
+    bangDaoHam = null
+    giaTriCuoi = null
+    btnNextBackwardElem.disabled = true
+    btnResetBackwardElem.disabled = true
+}
+
+function handleBackwardNext() {
+    if (quyTrinhDaoHam == null) {
+        alert('Chưa chọn biến')
+        return
+    }
+    var nodeCuoi = getNodeCuoi(danhSachQuyTrinh)
+    if (currentBackwardStep === -1) {
+        return
+    }
+    
+    var stepDaoHam = quyTrinhDaoHam[currentBackwardStep]
+
+    var daoHamNodeSau = tinhDaoHam(stepDaoHam)
+    var daoHamNodeCuoi
+    var nodeSau = stepDaoHam.step.toanTu
+    console.log('Node Sau', nodeSau)
+    console.log('Node Cuoi', nodeCuoi)
+    if (currentBackwardStep === 0) {
+        daoHamNodeCuoi = daoHamNodeSau
+    } else {
+        var daoHamNodeCuoiTheoNodeSau = bangDaoHam[nodeSau][nodeCuoi]
+        daoHamNodeCuoi = calc(daoHamNodeSau, daoHamNodeCuoiTheoNodeSau, '*')
+    }
+    bangDaoHam[stepDaoHam.nodeTruoc][nodeSau] = daoHamNodeSau
+    bangDaoHam[stepDaoHam.nodeTruoc][nodeCuoi] = daoHamNodeCuoi
+    currentBackwardStep++
+    
+
+
+    // Cập nhật giao diện
+    var edge = document.getElementById(`edge-${stepDaoHam.nodeTruoc}-${nodeSau}`)
+    edge.classList.add('active')
+    setTimeout(() => {
+        var backwardElem = edge.getElementsByClassName('backward')[0]
+
+        var nodeName = getNode(nodeList, stepDaoHam.nodeTruoc).varName
+        var nodeCuoiName = getNode(nodeList, nodeCuoi).varName
+        backwardElem.innerHTML = createBackwardElem(nodeCuoiName, nodeName, daoHamNodeCuoi.data)
+    }, 500)
+    console.log(bangDaoHam)
+    setTimeout(() => {
+        edge.classList.remove('active')
+    }, 1000)
+
+    if (currentBackwardStep === quyTrinhDaoHam.length) {
+        currentBackwardStep = -2 // Xong
+        btnNextBackwardElem.disabled = true
+        btnResetBackwardElem.disabled = false
+        return
+    }
+}
+
+function tinhDaoHam(stepDaoHam) { // y'(x)
+    console.log(stepDaoHam)
+    if (getNode(nodeList, stepDaoHam.step.toanTu).label === '+') {
+        return new Value(0, 1)
+    }
+    if (getNode(nodeList, stepDaoHam.step.toanTu).label === '-') {
+        if (stepDaoHam.step.toanHang2 !== stepDaoHam.nodeTruoc) { // node phia truoc la toan hang 1
+            return new Value(0, 1)
+        } else {
+            return new Value(0, -1)
+        }
+    }
+    if (getNode(nodeList, stepDaoHam.step.toanTu).label === '*') {
+        if (stepDaoHam.step.toanHang2 !== stepDaoHam.nodeTruoc) { // node phia truoc la toan hang 1
+            return getValue(stepDaoHam.step.toanHang2)
+        } else {
+            return getValue(stepDaoHam.step.toanHang1)
+        }
+    }
+    if (getNode(nodeList, stepDaoHam.step.toanTu).label[0] === '^') {
+        var giaTriMu = getNode(nodeList, stepDaoHam.step.toanTu).label.slice(1)
+        // x^n -> n*x^(n-1)
+        var toanHang = getValue(stepDaoHam.step.toanHang1)
+        return calc(new Value(0, giaTriMu), calc(toanHang, null, '^' + (giaTriMu - 1)), '*')
+    }
+    return '?'
+}
+
+function handleChangeVarBackward(event) {
+    handleResetBackward()
+    var nodeDau = +event.target.value
+    quyTrinhDaoHam = taoQuyTrinhDaoHam(nodeList, danhSachQuyTrinh, nodeDau)
+    bangDaoHam = taoBangDaoHam(nodeList, danhSachQuyTrinh, quyTrinhDaoHam)
+    currentBackwardStep = 0
+    if (currentStep === -2) {
+        btnNextBackwardElem.disabled = false
+        btnResetBackwardElem.disabled = false
+    }
+}
+
+function handleResetBackward() {
+    var backwardElems = document.getElementsByClassName('backward')
+    for (var i = 0; i < backwardElems.length; i++) {
+        backwardElems[i].innerHTML = ''
+    }
+    currentBackwardStep = 0
+    bangDaoHam = taoBangDaoHam(nodeList, danhSachQuyTrinh, quyTrinhDaoHam)
+    if (currentStep === -2) {
+        btnNextBackwardElem.disabled = false
+        btnResetBackwardElem.disabled = false
+    }
 }
 
 function handleBtnSwitch(e) {
@@ -109,6 +241,14 @@ function handleUpdateExpression() { // Xử lý ấn nút cập nhật
     console.log(expression)
     // Kiểm tra tính hợp lệ của biểu thức
     if (checkExpression(expression)) {
+
+
+        // Tạo dữ liệu
+        nodeList = taoNodeList(expression)
+        danhSachQuyTrinh = taoDanhSachQuyTrinh(nodeList)
+        nodeList = createNodeDescription(nodeList, danhSachQuyTrinh)
+        console.log(nodeList)
+
         // Tạo input biến
         var varGroupInnerHtml = ''
         var tabIndex = 1
@@ -136,20 +276,29 @@ function handleUpdateExpression() { // Xử lý ấn nút cập nhật
         })
         varGroupElem.innerHTML = varGroupInnerHtml
 
-        // Add event cho button
+        // Tạo biến chọn đạo hàm
+        varBackwardHtml = ''
+        nodeList.forEach((node, index) => {
+            if (node.type === 0) {
+                if (nodeList.findIndex(elem => elem.id === node.id) === index) {
+                    varBackwardHtml += `
+                    <div class="var-backward-group">
+                        <input class="var-backward" type="radio" id="${node.label}-var-backward" name="var-backward" value="${node.id}" onChange="handleChangeVarBackward(event)">
+                        <label for="${node.label}-var-backward">${node.label}</label>
+                    </div>
+                    `
+                }
+            }
+        })
+        backwardVarElem.innerHTML = varBackwardHtml
 
-
-        // Tạo dữ liệu
-        nodeList = taoNodeList(expression)
-        console.log(nodeList)
-        danhSachQuyTrinh = taoDanhSachQuyTrinh(nodeList)
-        console.log(danhSachQuyTrinh)
         // Tạo html
         nodeElemList = createNodeElemList(nodeList, danhSachQuyTrinh)
         edgeElemList = createEdgeElemList(danhSachQuyTrinh)
         mainWorkspaceElem.innerHTML = ''
         drawNode(nodeElemList)
         drawEdge(edgeElemList)
+
         currentStep = -1
         btnNextElem.disabled = true
         btnResetElem.disabled = true
@@ -168,7 +317,10 @@ function handleSubmitExpression() {
         // Tạo dữ liệu
         nodeList = taoNodeList(expression)
         danhSachQuyTrinh = taoDanhSachQuyTrinh(nodeList)
+        nodeList = createNodeDescription(nodeList, danhSachQuyTrinh)
         graphTable = taoBangDoThi(nodeList, danhSachQuyTrinh)
+        bangDaoHam = taoBangDaoHam(nodeList, danhSachQuyTrinh, quyTrinhDaoHam)
+        console.table(bangDaoHam)
 
         // Tạo html
         nodeElemList = createNodeElemList(nodeList, danhSachQuyTrinh)
@@ -260,7 +412,6 @@ function handleSubmitExpression() {
         btnResetElem.disabled = true
         return
     }
-    console.table(graphTable)
 }
 
 function handleNext() {
@@ -280,8 +431,8 @@ function handleNext() {
         if (step.toanHang2 !== null)
             toanHang2 = graphTable[step.toanTu][step.toanHang2]
         var result = calc(toanHang1, toanHang2, toanTu)
+        giaTriCuoi = result
 
-        console.log(result)
         // Cập nhật giao diện
         var nodeToanTu = document.getElementById('node-' + step.toanTu)
         var edge1 = document.getElementById(`edge-${step.toanHang1}-${step.toanTu}`)
@@ -317,6 +468,9 @@ function handleNext() {
         currentStep = -2
         btnNextElem.disabled = true
         btnResetElem.disabled = false
+        btnNextBackwardElem.disabled = false
+        btnResetBackwardElem.disabled = false
+        currentBackwardStep = 0
     } else {
         // Cập nhật bảng đồ thị
         var toanHang1 = graphTable[step.toanTu][step.toanHang1] // kieu Value
@@ -333,8 +487,6 @@ function handleNext() {
                 indexNodeSauToanTu = index
             }
         })
-        console.table(graphTable)
-        console.log(indexNodeSauToanTu)
 
 
         // Cập nhật giao diện
@@ -371,6 +523,19 @@ function handleNext() {
 
         currentStep++
     }
+}
+
+function getValue(nodeId) {
+    var value = null
+    graphTable.forEach(row => {
+        if (row[nodeId] !== null) {
+            value = row[nodeId]
+        }
+    })
+    if (nodeId === getNodeCuoi(danhSachQuyTrinh)) {
+        value = giaTriCuoi
+    }
+    return value
 }
 
 function calc(toanHang1, toanHang2, toanTu) {
@@ -443,7 +608,6 @@ function calc(toanHang1, toanHang2, toanTu) {
             return result
         }
     }
-    console.log(result)
     if (result.type === 0) {
         if (isNaN(result.data) || !Number.isFinite(result.data)) {
             return new Value(-1, '?')
@@ -475,6 +639,9 @@ function drawNode(nodeElemList) {
             "
         >
             ${nodeElem.label}
+            <div class="description">
+                ${nodeElem.description}
+            </div>
         </div>
         `
     )).join('')
@@ -505,6 +672,7 @@ function drawEdge(edgeElemList) {
                     <div class="arrow"></div>
                 </div>
                 <div class="edge-num"></div>
+                <div class="backward"></div>
             </div>
             `
         )
@@ -526,8 +694,32 @@ function drawEdge(edgeElemList) {
                 <div class="arrow"></div>
             </div>
             <div class="edge-num"></div>
+            <div class="backward"></div>
         </div>
     `
+}
+
+function createBackwardElem(y, x, a) { // dy/dx=a
+    if (checkNumber(a)) {
+        a = (a.toFixed(3) == a ? a : a.toFixed(3))
+    } else {
+        a = '?'
+    }
+    return (
+        `<div class="backward-wrap">
+            <div class="fraction">
+                <div class="top">
+                    &#8706;${y}
+                </div>
+                <div class="hr"></div>
+                <div>
+                    &#8706;${x}
+                </div>
+            </div>
+            <div class="equal">=</div>
+            <div class="value">${a}</div>
+        </div>`
+    )
 }
 
 function createNodeElemList(nodeList, danhSachQuyTrinh) {
@@ -541,7 +733,7 @@ function createNodeElemList(nodeList, danhSachQuyTrinh) {
         if (node.type === 0) {
             if (nodeElemList.findIndex(nodeElem => nodeElem.id === node.id) === -1) {
                 maxY = yNodeVar
-                nodeElemList.push(new NodeElem(node.id, 0, yNodeVar, node.label))
+                nodeElemList.push(new NodeElem(node.id, 0, yNodeVar, node.label, node.description))
                 yNodeVar += DISTANCEY
             }
         }
@@ -581,7 +773,7 @@ function createNodeElemList(nodeList, danhSachQuyTrinh) {
         if (xNewNodeElem > maxX) {
             maxX = xNewNodeElem
         }
-        nodeElemList.push(new NodeElem(nodeToanTu.id, xNewNodeElem, yNewNodeElem, nodeToanTu.label))
+        nodeElemList.push(new NodeElem(nodeToanTu.id, xNewNodeElem, yNewNodeElem, nodeToanTu.label, nodeToanTu.description))
     })
 
     // Đẩy vào giữa
@@ -593,7 +785,8 @@ function createNodeElemList(nodeList, danhSachQuyTrinh) {
         nodeElem.id,
         nodeElem.x + offsetX,
         nodeElem.y + offsetY,
-        nodeElem.label
+        nodeElem.label,
+        nodeElem.description
     ))
 }
 
@@ -643,25 +836,65 @@ function taoBangDoThi(nodeList, danhSachQuyTrinh) {
     return graphTable
 }
 
+function taoBangDaoHam(nodeList, danhSachQuyTrinh, quyTrinhDaoHam) {
+    var bangDaoHam
+    var maxNodeListId = -1
+    for (var i = 0; i < nodeList.length; i++) {
+        if (maxNodeListId < nodeList[i].id) {
+            maxNodeListId = nodeList[i].id
+        }
+    }
+
+    var temp = []
+    for (let index = 0; index <= maxNodeListId; index++) {
+        temp.push(null)
+    }
+
+    bangDaoHam = temp.map(_ => (
+        temp.map(_ => null)
+    ))
+
+    return bangDaoHam
+}
+
 function taoNodeList(expression) {
     var id = 0
     var nodeList = []
+    var listVarName = []
+    var arrayChar = Array.from({ length: 26 }, (_, i) => String.fromCharCode('a'.charCodeAt(0) + i))
     expression.forEach(elem => {
         if (ktPhanTu(elem) === 0) { // Biến
             var indexNode = nodeList.findIndex(node => node.label === elem)
             if (indexNode === -1) { // Chưa có biến trong nodeList
-                nodeList.push(new Node(id, elem, 0))
+                nodeList.push(new Node(id, elem, 0, elem, ''))
+                listVarName.push(elem)
                 id++
             } else {
-                nodeList.push(new Node(nodeList[indexNode].id, elem, 0))
+                nodeList.push(new Node(nodeList[indexNode].id, elem, 0, elem, ''))
             }
         } else if (ktPhanTu(elem) === 1) { // Toán tử
             nodeList.push(new Node(id, elem, 1))
             id++
         } else { // Dấu ngoặc
-            nodeList.push(new Node(-1, elem, -1))
+            nodeList.push(new Node(-1, elem, -1, '', ''))
         }
     })
+
+    nodeList = nodeList.map(elem => {
+        if (elem.type === 0 || elem.type === -1) { // biến
+            return elem
+        } else {
+            for (var i = 0; i < arrayChar.length; i++) {
+                if (!listVarName.includes(arrayChar[i])) {
+                    listVarName.push(arrayChar[i])
+                    elem.varName = arrayChar[i]
+                    return elem
+                }
+            }
+            return elem
+        }
+    })
+
     return nodeList
 }
 
@@ -686,8 +919,6 @@ function splitExpression(stringExpression) { // Tách chuỗi biểu thức thà
                 expression[i] = expression[i - 1]
                 expression[i - 1] = t
             } else {
-                
-                console.log('bang ngoac')
                 var ii = i - 1
                 var ngoacDong = 0
                 var ngoacMo = 0
@@ -718,6 +949,31 @@ function splitExpression(stringExpression) { // Tách chuỗi biểu thức thà
     return expression
 }
 
+function createNodeDescription(nl, dsQuyTrinh) {
+    var _nodeList = []
+    nl.forEach(x => {
+        _nodeList.push({ ...x })
+    })
+    dsQuyTrinh.forEach(step => {
+        var toanHang1Node = _nodeList.find(elem => elem.id === step.toanHang1)
+        var toanHang2Node = _nodeList.find(elem => elem.id === step.toanHang2)
+        var toanTuNode = _nodeList.find(elem => elem.id === step.toanTu)
+        if (step.toanHang2) {
+            for (let i = 0; i < _nodeList.length; i++) {
+                if (_nodeList[i].id === step.toanTu) {
+                    _nodeList[i].description = `${toanTuNode.varName}=${toanHang1Node.varName}${toanTuNode.label}${toanHang2Node.varName}`
+                }
+            }
+        } else {
+            for (let i = 0; i < _nodeList.length; i++) {
+                if (_nodeList[i].id === step.toanTu) {
+                    _nodeList[i].description = `${toanTuNode.varName}=${toanHang1Node.varName}${toanTuNode.label}`
+                }
+            }
+        }
+    })
+    return _nodeList
+}
 
 function ktPhanTu(str) { //0: biến, 1: toán tử, -1: không hợp lệ
     if ((/[a-zA-Z]/).test(str)) {
@@ -938,6 +1194,25 @@ function checkExpression(ex) { // Kiểm tra tính hợp lệ của biểu thứ
     return true
 }
 
+function taoQuyTrinhDaoHam(nl, danhSachQuyTrinh, nodeDau) {
+    var quyTrinh = []
+    var nodeCuoi = getNodeCuoi(danhSachQuyTrinh)
+    var currentNode = nodeDau
+    while (currentNode !== nodeCuoi) {
+        for (var i = 0; i < danhSachQuyTrinh.length; i++) {
+            if (danhSachQuyTrinh[i].toanHang1 === currentNode || danhSachQuyTrinh[i].toanHang2 === currentNode) {
+                quyTrinh.push(new StepDaoHam(currentNode, danhSachQuyTrinh[i]))
+                currentNode = danhSachQuyTrinh[i].toanTu
+                break
+            }
+        }
+    }
+    return quyTrinh.reverse()
+}
+
+function getNodeCuoi(danhSachQuyTrinh) {
+    return danhSachQuyTrinh[danhSachQuyTrinh.length - 1].toanTu
+}
 
 function Mt2Elem(m) {
 
